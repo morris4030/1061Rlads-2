@@ -88,12 +88,12 @@ print(sprintf("留言次數跟生氣的相關係數: %.4f", cor(new.page$comment
 ```
 <center><img src="images/cor.png" style="width: 750px;"/></center>
 
-再來，我們把強烈正相關的部分抓出來看看
+如果我們把強烈正相關的部分抓出來看看
 
 <center><img src="images/redcor.png" style="width: 750px;"/></center>
 發現竟然只有愛心還有驚訝會跟留言以及按讚數有正向的關係!! 另一方面，大笑、難過、生氣跟按讚留言之間的正向關係並不強。
 
-想想也是，大概是因為只有愛心跟驚訝的新聞會讓人比較想感同身受或留言吧。難過跟生氣不想按讚完全可以理解，大笑看過笑完似乎也不會有想留言的衝動。
+想想也是，大概是因為只有愛心跟驚訝的新聞會讓人比較想感同身受表達支持或留言吧。當趕到難過跟生氣時不想按讚完全是可以理解的，大笑的內容看過笑完似乎也不會有想進一步留言的衝動。
 
 以上只是目前初步的分析得到的想法，仍然需要更進一步的資料以及統計方法才能得出更好的結論。
 
@@ -106,8 +106,8 @@ page1 <- page %>%
   summarise(avg = mean(likes_count), std = sd(likes_count)) %>%
   arrange(avg)
 page2 <-count(group_by(page, type), type)
-left_join(page1, page2)
 
+left_join(page1, page2)
 ```
 <center><img src="images/avgstd.png" style="width: 750px;"/></center>
 
@@ -140,3 +140,6 @@ freq.word.final
 
 另外也可以看出經濟學人雜誌最近較常關注的議題，像是歷史、人生、美國、政府等關鍵字也出現於其中。
 
+------
+
+以上，是第二組本次的期中加分作業內容。
