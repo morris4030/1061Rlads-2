@@ -9,10 +9,12 @@ library(dplyr)
 
 <h3>期中加分作業</h3>
 
-對於這次的作業，我們想做的是一個對經濟學人(TheEconomist)粉絲專頁的分析結果。
+對於這次的作業，我們想做的是一個對經濟學人雜誌(TheEconomist)粉絲專頁進行一些初步的分析。
 https://www.facebook.com/TheEconomist
 截至2017/11/15 上午1:50分，經濟學人粉絲專頁一共有8,368,367 人按讚，8,178,742 人追蹤。
-雖然不像隔壁的CNN有著兩千九百萬人按讚，但是經濟學人的內容主要關注在社會科學，也就是經濟、政治以及社會方面，可能相對比較容易做出有建設性的分析結果。
+文章數目也是相當的多，因此我們從公開(public)的文章中取出作為分析的對象。
+
+<h3>透過Rfacebook得到資料</h3>
 
 ```{r, warning=FALSE}
 #install.packages("Rfacebook")
@@ -26,11 +28,7 @@ fb_oauth <- fbOAuth(
 
 save(fb_oauth, file="fb_oauth")
 load("fb_oauth")
-
 ```
-
-<h3>透過Rfacebook得到資料</h3>
-
 首先，我們使用'getPage'的功能從粉專當中找出最近的500筆資料(之所以是500這個數字，是因為獲得更高的資料數需要更多的時間，而我們快趕不上這次作業的死線了)，然後將得到的Facebook時間訊息處理成R語言能夠使用的模式。
 
 ```{r}
@@ -87,6 +85,12 @@ print(sprintf("留言次數跟生氣的相關係數: %.4f", cor(new.page$comment
 ```
 <center><img src="images/cor.png" style="width: 750px;"/></center>
 
+再來，我們把強烈正相關的部分抓出來看看
+<center><img src="images/redcor.png" style="width: 750px;"/></center>
+發現竟然只有愛心還有驚訝會跟留言以及按讚數有正向的關係!! 另一方面，大笑、難過、生氣跟按讚留言之間的正向關係並不強。
+想想也是，大概是因為只有愛心跟驚訝的新聞會讓人比較想感同身受或留言吧。難過跟生氣不想按讚完全可以理解，大笑看過笑完似乎也不會有想留言的衝動。
+初步的分析
+
 <h3>計算不同發佈方式的平均按讚數(如:連結網址、影片、照片)，以及其標準差</h3>
 
 ```{r}
@@ -102,14 +106,13 @@ left_join(page1, page2)
 
 
 從以上的(有效)統計當中，我們可以看到影片的點讚數明顯的比單純的網址連結高出約3倍!!!
-可能也就是因為影片能夠觸及的人群較多，這或許也可以解釋為什麼近年來Facebook努力推動影片分享的功能。
+照片的按讚數也是相當的高，但是由於樣本不夠多，顯著性不強，因此先暫時不討論。
+可能就是因為影片、照片這類非文字的資訊能夠觸及的人群較多，這或許也可以解釋為什麼近年來Facebook努力推動影片分享以及直播的功能。
 
 
 <h3>使用tidytext分析標題內容，找出哪個標題關鍵字出現最多次</h3>
 
 ```{r}
-
-
 page.message <- select(page, message)
 page.message.words <- unnest_tokens(page.message, word, message)
 
@@ -123,10 +126,6 @@ freq.word.final <- filter(freq.word, n > 10)
 freq.word.final
 ```
 <center><img src="images/wordn.png" style="width: 750px;"/></center>
-
-
-
-
-可以看出第一名的people以39次奪冠，去除掉2,3,4名跟雜誌本身名字有關的資訊(1843為The Economist旗下的雜誌名)，主要得名的還有world, time, 美國總統Donald Trump等關鍵字。
-另外也可以看出經濟學人雜誌常關注的議題，關於歷史、美國、政府等關鍵字也出現於其中。
+可以看出第一名的people以39次奪冠，去除掉2,3,4名跟雜誌本身名字有關的文字(註：1843為The Economist旗下的雜誌名)，得名的還有world, time, 美國總統Donald Trump等關鍵字。
+另外也可以看出經濟學人雜誌最近較常關注的議題，像是歷史、人生、美國、政府等關鍵字也出現於其中。
 
