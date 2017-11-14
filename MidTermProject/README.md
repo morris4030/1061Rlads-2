@@ -11,7 +11,7 @@ library(dplyr)
 
 對於這次的作業，我們想做的是一個對經濟學人雜誌(TheEconomist)粉絲專頁進行一些初步的分析。
 
-https://www.facebook.com/TheEconomist
+經濟學人雜誌粉絲專頁：https://www.facebook.com/TheEconomist
 
 截至2017/11/15 上午1:50分，經濟學人粉絲專頁一共有8,368,367 人按讚，8,178,742 人追蹤。
 文章數目也是相當的多，因此我們從公開(public)的文章中取出作為分析的對象。
