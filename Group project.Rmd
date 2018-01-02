@@ -1,0 +1,289 @@
+---
+title: "Group project"
+output: html_document
+---
+
+設定library
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(tm)
+
+library(stringr)
+library(wordcloud2)
+library(tidyr)
+
+library(leaflet)
+#library(tidytext)
+#library(tibble)
+#library(plyr)
+
+``` 
+
+
+前處理：輸入資料
+把兩個檔案轉成.csv檔，再用read.csv讀取，選取檔案中需要的部分
+
+```{r}
+
+new <- read.csv(file = "E:/下載/ces2017_20171113_v2.csv")
+old <- read.csv(file = "E:/下載/itri_ces2017_20171116_Others.csv")
+total <- read.csv(file = "E:/下載/vs_startup_20171221_join_compare.csv")
+
+ces.new <- select(new, strCompanyName, strCountry, lstProductCategories, strAbout)
+ces.old <- select(old, strCompanyName, strCountry, lstProductCategories, strAbout)
+
+vc.all <- select(total, strCompany,	lstProductCategories,	strAbout,	strCountry_x,	strSource_x, lstStrTag ,strCountry_y,	strDescription,	strSource_y, intTotalFundingAmount )
+
+#View(ces.new)
+#View(ces.old)
+#View(vc.all)
+
+#ces.new是新創公司的資料
+#ces.old是非新創公司的資料
+#strCompanyName表示公司名稱，strCountry表示公司所在國家，lstProductCategories表示主要產品項目，strAbout為公司介紹
+
+
+
+```
+
+對crunchbase的資料處理
+
+```{r}
+engwords <- gsub("\\["," ", vc.all$lstProductCategories)
+engwords <- gsub("\\]"," ", engwords)
+engwords <- gsub("\""," ", engwords)
+engwords <- strsplit(engwords, ",")
+engwords <- gsub("^\\s+|\\s+$", "", engwords)
+
+vs <- VectorSource(engwords)
+#vc <- VCorpus(vs)
+
+y <- Corpus(VectorSource(
+          strsplit(engwords, ",")  ## coerce to character
+         ))
+
+#vc_low <- tm_map(vc, content_transformer(tolower))
+#vc_stem <- tm_map(vc_low, stemDocument)
+#vc_stop <- tm_map(vc_stem, removeWords, stopwords("english"))
+  
+
+dtm <- DocumentTermMatrix(y)
+
+
+non.sparse.matrix <- as.matrix(dtm)
+
+vc.pro <- select(vc.all, strCompany, strCountry_x)
+vc.pro <- cbind(vc.pro, non.sparse.matrix)
+
+#vc.pro 代表用crunchbase爬下來，處理完的資料
+
+
+```
+
+
+處理vc.pro
+
+```{r}
+vc.new <- arrange(vc.pro, desc(strCountry_x))
+
+vc.new1 <- vc.new %>% group_by(strCountry_x) %>% summarise(Accessories.total = sum(accessories), AutomotiveVehicleTech.total = sum(automotive), OtherConsumerTech.total = sum(other), PublicPolicyGov.total = sum(public), Wearables.total = sum(wearables), Audio.total = sum(audio), ARVR.total = sum(virtual), HealthandBiotech.total = sum(health), Robotics.total = sum(robotics), SmartCities.total = sum(cities), Lifestyle.total = sum(lifestyle), SmartHome.total = sum(management), ComputerHardwareSoftware.total = sum(computer), Nanotech.total = sum(nanotechnology), Accessibility.total = sum(accessibility), FitnessSport = sum(fitness), WirelessDevices.total = sum(wireless), Telecommunications.total = sum(telecommunications), DigitalImaging.total = sum(photography), Video.total = sum(video), Education.total = sum(education), Gaming.total = sum(gaming), InternetServices.total = sum(internet), MobileApps.total = sum(apps), Sensors.total = sum(sensors), Biometrics.total = sum(biometrics), OnlineMedia.total = sum(online), Ecommerce.total = sum(finance),  CyberSSecurity.total = sum(cyber), Safety.total = sum(safety), Sustainability.total = sum(sustainability), TravelLeisure.total = sum(travel), Drones.total = sum(drones), threeDprinting.total = sum(printing), ContentCreation.total = sum(creation), StreamingServices.total = sum(streaming), WirelessDevices.total = sum(devices), WirelessService.total = sum(wireless)-sum(devices))
+
+write.csv(vc.new1, file = "output.CSV")
+
+
+
+
+
+```
+
+對新創公司的公司介紹做文字雲
+
+```{r}
+
+engwords <- gsub("\\n"," ", vc.all$strAbout)
+engwords <- gsub("[[:punct:]]"," ", engwords) 
+
+
+text <- data.frame(cesnew = engwords)
+
+#文字處理
+vs <- VectorSource(text$cesnew)
+vc <- VCorpus(vs)
+vc_low <- tm_map(vc, content_transformer(tolower))
+vc_stem <- tm_map(vc_low, stemDocument)
+vc_stop <- tm_map(vc_stem, removeWords,
+     stopwords("english"))
+
+dtm <- DocumentTermMatrix(vc_stop)
+
+freq_terms <- findFreqTerms(dtm, 50)  #找出現超過50次的字
+freq_vec <- sapply(freq_terms, function(x){sum(dtm[, x])})
+freq_vec <- freq_vec[order(-freq_vec)]
+overallstats <- data.frame(Freq = freq_vec)
+overallstats <- as.data.frame.table(overallstats)
+#View(overallstats)
+overall <- select(overallstats, Var1, Freq)
+
+#文字雲
+wordcloud2(overall, size = 1,shape = 'circle')
+
+overall
+#write.csv(overall, file = "newfirm.CSV")
+
+```
+
+對非新創公司的公司介紹做文字雲
+
+```{r}
+
+engwords <- gsub("\\n"," ", old$strAbout)
+engwords <- gsub("[[:punct:]]"," ", engwords) 
+
+text <- data.frame(cesold = engwords)
+
+#文字處理
+vs <- VectorSource(text$cesold)
+vc <- VCorpus(vs)
+vc_low <- tm_map(vc, content_transformer(tolower))
+vc_stem <- tm_map(vc_low, stemDocument)
+vc_stop <- tm_map(vc_stem, removeWords,
+     stopwords("english"))
+  
+dtm <- DocumentTermMatrix(vc_stop)
+
+freq_terms <- findFreqTerms(dtm, 1)  #找出現超過50次的字
+freq_vec <- sapply(freq_terms, function(x){sum(dtm[, x])})
+freq_vec <- freq_vec[order(-freq_vec)]
+overallstats <- data.frame(Freq = freq_vec)
+overallstats <- as.data.frame.table(overallstats)
+#View(overallstats)
+overall <- select(overallstats, Var1, Freq)
+
+
+#文字雲
+wordcloud2(overall, size = 1,shape = 'circle')
+
+overall
+#write.csv(overall, file = "oldfirm.CSV")
+```
+
+
+作圖
+
+
+```{r}
+
+vcnumber <- read.csv("D:/2017/output.csv")
+
+pal <- colorNumeric(
+  palette = "YlGnBu",
+  domain = vcnumber$TOTAL
+)
+map <- leaflet(countries) %>% addTiles()
+
+map %>%
+  addPolygons(stroke = FALSE, smoothFactor = 0.2, fillOpacity = 1,
+    color = ~pal(TOTAL)
+  ) %>%
+  addLegend("bottomright", pal = pal, values = ~TOTAL,
+    title = "Est. GDP (2010)",
+    labFormat = labelFormat(prefix = "$"),
+    opacity = 1
+  )
+
+
+```
+
+
+
+```{r}
+library(rnaturalearth)
+library(sp)
+
+plot(ne_countries(country = 'Taiwan', scale = 'large'))
+box()
+
+
+plot(ne_coastline(scale = "large"), xlim=c(118,124), ylim=c(20,27))
+box()
+
+plot(ne_countries(type = 'countries', scale = 'small'))
+
+######
+##使用德國版資料
+
+load("E:/下載/wmap_countries_smaller_df_final.RData") 
+View(wmap_countries_df_final)
+
+load("E:/下載/diff_table_bind.RData")
+View(diff_table_bind)
+
+
+
+```
+
+
+```{R}
+#install.package("geojsonio")
+library(geojsonio)
+library(geojson)
+library(leaflet)
+library(rjson)
+library(shiny)
+library(leaflet)
+
+
+states <- geojsonio::geojson_read("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json", what = "sp")
+#states <- geojsonio::geojson_read("E:/下載/custom.geo (1).json", what = "sp")
+#states <- r
+
+#write.csv(states, file = "countries.CSV")
+vctimes <- read.csv("D:/2017/R語言與資料科學/countries.csv")
+
+
+#bins <- c(0, 10, 50, 100, 200, 300, 500, 1000, 1500, Inf)
+#bins <- c(0, 1000, 2000, 3000, 5000, 10000, 50000, Inf)
+bins <- c(0, 2, 4, 6, 8, 10, 15, Inf)
+
+#失業率地圖
+pal <- colorBin("YlOrRd", domain = vctimes$Unemployment , bins = bins)
+
+labels <- sprintf(
+  "<strong>%s</strong><br/>%g vc companies, GDP:$ %.3f, Population: %.f",
+  states$name, vctimes$TOTAL, vctimes$GDPinbillions, vctimes$Population
+
+) %>% lapply(htmltools::HTML)
+
+leaflet(states) %>%
+  setView(-96, 37.8, 4) %>%
+  addProviderTiles("MapBox", options = providerTileOptions(
+    id = "mapbox.light",
+    accessToken = Sys.getenv('MAPBOX_ACCESS_TOKEN'))) %>%
+  addPolygons(
+    fillColor = ~pal(vctimes$Unemployment),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 5,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE),
+    label = labels,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")) %>%
+  addLegend(pal = pal, values = ~density, opacity = 0.7, title = NULL,
+    position = "bottomright")
+```
+
+
+
+
